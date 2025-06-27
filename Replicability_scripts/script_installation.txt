@@ -1,4 +1,4 @@
-conda create --name py36_flattening_env python=3.6
+conda create --name py36_flattening_env python=3.13.5
 
 conda activate py36_flattening_env
 

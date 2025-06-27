@@ -30,8 +30,7 @@ import argparse
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--meshfile', type=str, metavar='PATH', help='path to input mesh with filled holes', required=True)
-parser.add_argument('--meshfile_o', type=str, metavar='PATH', help='path to open input mesh', required=True)
+parser.add_argument('--meshfile', type=str, metavar='PATH', help='path to input mesh')
 parser.add_argument('--save_conts', type=bool, default=False, help='set to true to save mesh contours/contraints')
 parser.add_argument('--save_final_paths', type=bool, default=False, help='set to true to save modified dividing paths')
 args = parser.parse_args()
@@ -40,7 +39,6 @@ if os.path.isfile(args.meshfile)==False:
     sys.exit('ERROR: input file does not exist')
 else:
     mesh = readvtk(args.meshfile)
-    m_open = readvtk(args.meshfile_o)
 
 seeds_filename = args.meshfile[0:len(args.meshfile)-4] + '_seeds_for_flat.vtk'
 if os.path.isfile(seeds_filename)==False:
@@ -64,7 +62,7 @@ laa_disp_x = 0.03  # displacement of LAA wrt LSPV (in x direction, to the left)
 px_ref = -0.25
 py_ref = -0.10
 left_carina_length = 0.175
-right_carina_length = 1.5 * left_carina_length   # real proportions, do not separate more, it induces distortion close to the holes
+right_carina_length = 1.1 * left_carina_length   # real proportions, do not separate more, it induces distortion close to the holes
 pwall_width = 2.6 * left_carina_length
 sep_lspv_laa = 1.2
 t_v5 = np.pi / 8
@@ -109,7 +107,7 @@ coordinates = define_disk_template(rdisk, rhole_rspv, rhole_ripv, rhole_lipv, rh
 v1r_x, v1r_y, v1d_x, v1d_y, v1l_x, v1l_y, v2u_x, v2u_y, v2r_x, v2r_y, v2l_x, v2l_y, v3u_x, v3u_y, v3r_x, v3r_y, v3l_x, v3l_y, v4r_x, v4r_y, v4u_x, v4u_y, v4d_x, v4d_y, vlaad_x, vlaad_y, vlaau_x, vlaau_y, p5_x, p5_y, p6_x, p6_y, p7_x, p7_y, p8_x, p8_y = get_coords(coordinates)
 
 ##################    Open PVs and LAA holes (get 'to_be_flat_mesh'), identify contours and dividing paths in the to_be_flat mesh   ##################
-# m_open = cleanpolydata(pointthreshold(mesh, 'hole', 0, 0))
+m_open = cleanpolydata(pointthreshold(mesh, 'hole', 0, 0))
 writevtk(m_open, to_be_flat_filename)
 # contours
 cont_rspv, cont_ripv, cont_lipv, cont_lspv, cont_mv, cont_laa = extract_LA_contours(m_open, args.meshfile, args.save_conts)

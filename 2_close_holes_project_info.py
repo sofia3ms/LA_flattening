@@ -46,7 +46,7 @@ else:  # Fill holes
         if (vtk.vtkVersion.GetVTKVersion() < '9.1.0'):
             os.system('./FillSurfaceHoles_old -i ' + args.meshfile_open + ' -o ' + args.meshfile_closed + ' -smooth none')
         else:
-            os.system('./FillSurfaceHoles -i ' + args.meshfile_open + ' -o ' + args.meshfile_closed + ' -smooth none')
+            os.system('/FillSurfaceHoles -i ' + args.meshfile_open + ' -o ' + args.meshfile_closed + ' -smooth none')
     elif platform == "win32":
         os.system('FillSurfaceHoles_Windows\FillSurfaceHoles.exe -i ' + args.meshfile_open + ' -o ' + args.meshfile_closed + ' -smooth none')   # default smooth cotangent (and edglen) fails when using the Windows binary
     else:
@@ -55,7 +55,7 @@ else:  # Fill holes
 m_open = readvtk(args.meshfile_open)
 m_no_mitral = readvtk(args.meshfile_open_no_mitral)
 m_closed = readvtk(args.meshfile_closed)
-
+# m_closed = m_open
 print('Projecting information... ')
 transfer_all_scalar_arrays(m_open, m_closed)
 
@@ -93,6 +93,6 @@ transfer_array(m_open, m_closed, 'mv', 'mv')
 transfer_array(m_open, m_closed, 'autolabels', 'autolabels')
 m_final = pointthreshold(m_closed, 'mv', 0, 0)
 m_final.GetPointData().RemoveArray('mv')
-writevtk(m_final, args.meshfile_closed, 'binary')
+writevtk(m_final, args.meshfile_closed)
 
 print('PV and LAA holes have been closed and marked with scalar array <hole> = 1')

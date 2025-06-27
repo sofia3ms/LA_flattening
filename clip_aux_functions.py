@@ -653,7 +653,7 @@ def find_mitral_cylinder_pvs(surface, arrayname, outfile, scale=0.4, w=[0.7,0.15
     bodylength= computelengthalongvector(body, bodycom, pvdirn)
     measurepoint = sumvectors(bodycom, scale*bodylength, pvdirn)
     bodythick = computelengthalongvector(body, measurepoint, ostiacrossn)
-    bodywidth = computelengthalongvector(body, measurepoint, pvcrossn)
+    # bodywidth = computelengthalongvector(body, measurepoint, pvcrossn)
 
     # print('length', bodylength, 'widht', bodywidth, 'thickness', bodythick)
 

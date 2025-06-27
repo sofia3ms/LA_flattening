@@ -632,6 +632,10 @@ def extract_LA_contours(m_open, filename, save=False):
             if save == True:
                 writevtk(c, filename[0:len(filename) - 4] + '_cont_lipv.vtk')
             cont_lipv = c
+            
+    # visualize contours
+    
+    
     return cont_rspv, cont_ripv, cont_lipv, cont_lspv, cont_mv, cont_laa
 
 def build_locators(mesh, m_open, cont_rspv, cont_ripv, cont_lipv, cont_lspv, cont_laa):
@@ -1382,12 +1386,22 @@ def ComputeLaplacian(vertex, faces):
         i3 = np.mod(i + 1, 3)
         pp = vertex[:, faces[i2, :]] - vertex[:, faces[i1, :]]
         qq = vertex[:, faces[i3, :]] - vertex[:, faces[i1, :]]
+        # replace zero vectors with small value to avoid division by zero
+        pp[:,np.where(np.sum(pp ** 2, axis=0) == 0)] = 1e-10
+        qq[:,np.where(np.sum(qq ** 2, axis=0) == 0)] = 1e-10
+        
         # normalize the vectors
         pp = pp / np.sqrt(np.sum(pp ** 2, axis=0))
         qq = qq / np.sqrt(np.sum(qq ** 2, axis=0))
 
         # compute angles
-        ang = np.arccos(np.sum(pp * qq, axis=0))
+        sumy = np.sum(pp * qq, axis=0)
+        # ensure angles are in the range [0, pi]
+        sumy = np.clip(sumy, -1.0, 1.0)
+        
+        ang = np.arccos(sumy)
+        # replace zero angles with small value to avoid division by zero
+        ang[np.where(ang == 0)] = 1e-10
         W = W + sparse.coo_matrix((1 / np.tan(ang), (faces[i2, :], faces[i3, :])), shape=(n, n))
         W = W + sparse.coo_matrix((1 / np.tan(ang), (faces[i3, :], faces[i2, :])), shape=(n, n))
 
@@ -1438,7 +1452,7 @@ def flat_w_constraints(m, boundary_ids, constraints_ids, x0_b, y0_b, x0_c, y0_c)
     and additional contraint points to (x0_c,y0_c).
     Solve minimization problem using quadratic programming: https://en.wikipedia.org/wiki/Quadratic_programming"""
 
-    penalization = 1000
+    penalization = 1000000
     vertex = ExtractVTKPoints(m).T    # 3 x n_vertices
     faces = ExtractVTKTriFaces(m).T
     n = vertex.shape[1]
@@ -1467,7 +1481,7 @@ def flat_w_constraints(m, boundary_ids, constraints_ids, x0_b, y0_b, x0_c, y0_c)
 
     block1 = hstack([L.T.dot(L), M.T])
 
-    zeros_m = coo_matrix(np.zeros([len(dx),len(dx)]))
+    zeros_m = coo_matrix(np.eye(len(dx))*10**(-6))
     block2 = hstack([M, zeros_m])
 
     C = vstack([block1, block2])
@@ -1480,6 +1494,12 @@ def flat_w_constraints(m, boundary_ids, constraints_ids, x0_b, y0_b, x0_c, y0_c)
     dyy = coo_matrix([dy])
     cy = hstack([prody, dyy])
 
+    # convert cx to linear array
+    cx = cx.tocsc()
+    cy = cy.tocsc()
+    
+    
+    
     solx = linalg_sp.spsolve(C, cx.T)
     soly = linalg_sp.spsolve(C, cy.T)
 
