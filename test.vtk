@@ -1,0 +1,25 @@
+# vtk DataFile Version 5.1
+vtk output
+ASCII
+DATASET POLYDATA
+POINTS 4 float
+29.9574 43.681 76.6195 29.9738 43.6703 76.6137 31.364 46.24 82.846 
+31.177 45.573 83.046 
+LINES 5 8
+OFFSETS vtktypeint64
+0 2 4 6 8 
+CONNECTIVITY vtktypeint64
+0 1 2 3 2 1 0 3 
+CELL_DATA 4
+SCALARS Edge%20Types float
+LOOKUP_TABLE default
+0 0 0 0 
+POINT_DATA 4
+SCALARS scalars float
+LOOKUP_TABLE default
+0.02699 0.02699 0.02699 0.02699 
+FIELD FieldData 2
+autolabels 1 4 double
+78 78 78 78 
+hole 1 4 int
+1 1 1 1 

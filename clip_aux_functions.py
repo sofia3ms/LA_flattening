@@ -243,7 +243,7 @@ def centroidofcentroids(edges):
     finalcentroid = dividevector(acumvector,rn)
     return finalcentroid
 
-def pv_LAA_centerlines(inputfile, seedsfile, outfile, pvends=1):
+def pv_LAA_centerlines(inputfile, seedsfile, outfile, pvends=1, cut_laa=0):
     """ Create 5 pairs of centerlines, each one starting from each PV (or LAA) seed and going to the 2 opposite
     (other side) PVs"""
 
@@ -259,14 +259,18 @@ def pv_LAA_centerlines(inputfile, seedsfile, outfile, pvends=1):
     cl3 = vmtkcenterlines(surface, points[2], points[0] + points[1], pvends)
     print('\n \nProcessing LSPV seed:')
     cl4 = vmtkcenterlines(surface, points[3], points[0] + points[1], pvends)
-    print('\n \nProcessing LAA seed:')
-    cl5 = vmtkcenterlines(surface, points[4], points[0] + points[1], pvends)
+    if cut_laa == 0:
+        print('\n \nProcessing LAA seed:')
+        cl5 = vmtkcenterlines(surface, points[4], points[0] + points[1], pvends)
+    else:
+        print('\n \nProcessing LAA seed: skipping LAA centerline creation')
 
     writevtp(cl1, outfile + 'clraw21.vtp')
     writevtp(cl2, outfile + 'clraw22.vtp')
     writevtp(cl3, outfile + 'clraw23.vtp')
     writevtp(cl4, outfile + 'clraw24.vtp')
-    writevtp(cl5, outfile + 'clraw25.vtp')
+    if cut_laa == 0:
+        writevtp(cl5, outfile + 'clraw25.vtp')
 
 def intersectwithline(surface, p1, p2):
     """Given surface and line defined by 2 points (p1,p2), return insersecting points"""
@@ -346,7 +350,7 @@ def skippoints(polydata, nskippoints):
         polyout.Update()
     return polyout
 
-def clip_veins_sections_and_LAA(inputfile, sufixfile, clspacing, maxslope, skippointsfactor, highslope, bumpcriterion):
+def clip_veins_sections_and_LAA(inputfile, sufixfile, clspacing, maxslope, skippointsfactor, highslope, bumpcriterion, cut_laa=0):
     """ We wish to clip the vein as close to the body as possible without
     including parts of the body or other veins. 'Trial' clips are
     obtained using vmtkcenterlinesections, which creates for each point
@@ -375,8 +379,12 @@ def clip_veins_sections_and_LAA(inputfile, sufixfile, clspacing, maxslope, skipp
     for i in range(surface.GetNumberOfPoints()):
         branch_array.SetValue(i, round(36))
 
+    if cut_laa == 0:
+        k_range = 6
+    else:
+        k_range = 5
     #for k in range(1, 5):
-    for k in range(1, 6):
+    for k in range(1, k_range):
         print("branchlabel", branchlabel[k])
         cl = readvtp(sufixfile + 'clraw2' + str(k) + '.vtp')  # 2 means with endpoints
         cl = vmtkcenterlineresampling(cl, clspacing)
@@ -477,7 +485,7 @@ def clip_veins_sections_and_LAA(inputfile, sufixfile, clspacing, maxslope, skipp
         # visualise_color(vein,surface,'vein' + str(k))
     writevtp(surface, sufixfile + 'autolabels.vtp')
 
-def clip_vein_endpoint_and_LAA_save_planes(surface, ifile_sufix, targetdistance, specialvein=0, specialdist=0):
+def clip_vein_endpoint_and_LAA_save_planes(surface, ifile_sufix, targetdistance, specialvein=0, specialdist=0, cut_laa=0):
     """Clip vein the targetdistance away from the body. Clip also the LAA at specialdist.
     Return the clip planes, for each plane: point + normal
     in a numpy matrix. First row = 1st point (x,y,z), Second row = 1st normal (x,y,z). Then continue with the rest of PVs and LAA
@@ -496,7 +504,11 @@ def clip_vein_endpoint_and_LAA_save_planes(surface, ifile_sufix, targetdistance,
     else:
         appender.AddInput(body)
     originaldist = targetdistance
-    for k in range(1, 6):
+    if cut_laa == 1:
+        k_range = 5
+    else:
+        k_range = 6
+    for k in range(1, k_range):
         if k == 5:
             index = 'laa'
         else:
@@ -519,7 +531,7 @@ def clip_vein_endpoint_and_LAA_save_planes(surface, ifile_sufix, targetdistance,
         currentid = clippointid
 
         # if different distance for 1 vein
-        if specialvein > 0:
+        if specialvein > 0 and cut_laa == 0:
             if regionslabels[index] == specialvein:
                 targetdistance = specialdist
             else:

@@ -34,6 +34,7 @@ parser.add_argument('--bumpcriterion', type=float, default=0.05, help='Ostium if
 parser.add_argument('--pvends', type=int, default=1, help='Enforce the centerline to reach the end boundary of the surface.')
 parser.add_argument('--vis', type=int, default=1, help='Set to 1 to visualise clipping results overlaid with original mesh')
 parser.add_argument('--save', type=int, default=0, help='Set to 0 to remove intermediate results (centerlines, clippoints, etc.)')
+parser.add_argument('--cut_laa', type=int, default=0, help='Set to 1 for anatomies with LAA and MV clipped')
 args = parser.parse_args()
 
 
@@ -50,20 +51,26 @@ else:
 seedsfile = os.path.join(fileroot, filenameroot + '_clipseeds.vtp')
 outseedsfile = os.path.join(fileroot, filenameroot + '_clipseeds.csv')
 if not os.path.exists(seedsfile):
-    laa_seedon = 1
+    if args.cut_laa == 0:
+        laa_seedon = 1
+    else:
+        laa_seedon = 0
     print('Please, select exactly 5 seeds in this order: \n 1. RSPV \n 2. RIPV \n 3. LIPV \n 4. LSPV \n 5. LAA')
     select_seeds(surface, 'GTLabels', seedsfile, args.vis, laa_seedon)
 else:
     print('Seeds already selected, using those ones. To compute new seeds, delete file with suffix clip_seeds.vtp')
-seeds_to_csv(seedsfile, 'GTLabels', [77, 76, 78, 79, 36], outseedsfile)
+if args.cut_laa == 0:
+    seeds_to_csv(seedsfile, 'GTLabels', [77, 76, 78, 79, 36], outseedsfile)
+else:
+    seeds_to_csv(seedsfile, 'GTLabels', [77, 76, 78, 79], outseedsfile)
 
 # Compute centerlines
 outfile = os.path.join(fileroot, filenameroot + '_')
-pv_LAA_centerlines(args.meshfile, outseedsfile, outfile, args.pvends)
+pv_LAA_centerlines(args.meshfile, outseedsfile, outfile, args.pvends, args.cut_laa)
 
 # label PVs automatically
 outfile = os.path.join(fileroot, filenameroot + '_')
-clip_veins_sections_and_LAA(args.meshfile, outfile, args.clspacing, args.maxslope, args.skippointsfactor, args.highslope, args.bumpcriterion)
+clip_veins_sections_and_LAA(args.meshfile, outfile, args.clspacing, args.maxslope, args.skippointsfactor, args.highslope, args.bumpcriterion, args.cut_laa)
 
 # clip PV end points
 sufixfile = os.path.join(fileroot, filenameroot + '_')
@@ -71,13 +78,17 @@ inputfile = os.path.join(fileroot, filenameroot + '_autolabels.vtp')
 inputsurface = readvtp(inputfile)
 
 # use special distance (dist_LAA) for the LAA (label=37). Save the info about the clipping planes
-stdmesh, clip_planes = clip_vein_endpoint_and_LAA_save_planes(inputsurface, sufixfile, args.pv_dist, 37, args.laa_dist)
+stdmesh, clip_planes = clip_vein_endpoint_and_LAA_save_planes(inputsurface, sufixfile, args.pv_dist, 37, args.laa_dist, args.cut_laa)
 
 plane_file = os.path.join(fileroot, filenameroot + '_clip_planes.xlsx')
 workbook = xlsxwriter.Workbook(plane_file)
 worksheet = workbook.add_worksheet()
 onoff = 1
-for i in range(5):
+if args.cut_laa == 1:
+    i_range = 4
+else:
+    i_range = 5
+for i in range(i_range):
     point = clip_planes[2*i, 0:3]
     normal = clip_planes[2*i+1, 0:3]
     for j in range(3):
@@ -115,12 +126,13 @@ transfer_array(stdmesh_closed, m_ccliped, 'autolabels', 'autolabels')
 writevtk(cleanpolydata(m_ccliped), os.path.join(fileroot, filenameroot + '_crinkle_clipped.vtk'))
 
 # MV clip, auto
-w = [0.95, 0.05, 0.0]
-o_file = os.path.join(fileroot, filenameroot + '_clipped_mitral')
-surfaceclipped = find_mitral_cylinder_pvs(stdmesh, 'autolabels', o_file, 0.35, w, 0)
-if args.vis > 0:
-    visualise_color(surfaceclipped, surface, 'Mitral Valve clip')
-writevtk(cleanpolydata(surfaceclipped), o_file + '.vtk')
+if args.cut_laa == 0:
+    w = [0.95, 0.05, 0.0]
+    o_file = os.path.join(fileroot, filenameroot + '_clipped_mitral')
+    surfaceclipped = find_mitral_cylinder_pvs(stdmesh, 'autolabels', o_file, 0.25, w, 0)
+    if args.vis > 0:
+        visualise_color(surfaceclipped, surface, 'Mitral Valve clip')
+    writevtk(cleanpolydata(surfaceclipped), o_file + '.vtk')
 
 if args.save == 0:  # remove intermediate results (centerlines, clippoints, etc.)
     if sys.platform == "linux" or sys.platform == "linux2":

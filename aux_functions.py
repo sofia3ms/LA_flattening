@@ -581,7 +581,7 @@ def get_coords(c):
     """Given all coordinates in a matrix, identify and return them separately"""
     return c[0,0], c[1,0], c[0,1], c[1,1], c[0,2], c[1,2], c[0,3], c[1,3], c[0,4], c[1,4], c[0,5], c[1,5], c[0,6], c[1,6], c[0,7], c[1,7], c[0,8], c[1,8], c[0,9], c[1,9], c[0,10], c[1,10], c[0,11], c[1,11], c[0,12], c[1,12], c[0,13], c[1,13], c[0,14], c[1,14], c[0,15], c[1,15], c[0,16], c[1,16], c[0,17], c[1,17]
 
-def extract_LA_contours(m_open, filename, save=False):
+def extract_LA_contours(m_open, filename, save=False, cut_laa=0):
     """Given LA with clipped PVs, LAA and MV identify and classify all 5 contours using 'autolabels' array.
     Save contours if save=True"""
     edges = extractboundaryedge(m_open)
@@ -591,11 +591,15 @@ def extract_LA_contours(m_open, filename, save=False):
         writevtk(poly_edges, filename[0:len(filename) - 4] + '_detected_edges.vtk')
 
     print('Detected {} regions'.format(conn.GetNumberOfExtractedRegions()))
-    if conn.GetNumberOfExtractedRegions() != 6:
+    if cut_laa == 0:
+        nr_regions = 6
+    else:
+        nr_regions = 5
+    if conn.GetNumberOfExtractedRegions() != nr_regions:
         print(
             'WARNING: the number of contours detected is not the expected. The classification of contours may be wrong')
 
-    for i in range(6):
+    for i in range(conn.GetNumberOfExtractedRegions()):
         print('Detecting region index: {}'.format(i))
         c = pointthreshold(poly_edges, 'RegionId', i, i)
         autolabels = vtk_to_numpy(c.GetPointData().GetArray('autolabels'))
@@ -605,40 +609,68 @@ def extract_LA_contours(m_open, filename, save=False):
         if mostcommon == 36:  # use the most repeated label since some of they are 36 (body). Can be 36 more common in the other regions?
             print('Detected MV')
             if save == True:
-                writevtk(c, filename[0:len(filename) - 4] + '_cont_mv.vtk')
+                #check if file exists BEFORE WRITING
+                
+                if not os.path.isfile(filename[0:len(filename) - 4] + '_cont_mv.vtk'):
+                
+                    writevtk(c, filename[0:len(filename) - 4] + '_cont_mv.vtk')
+                else:
+                    writevtk(c, filename[0:len(filename) - 4] + str(i) + '_cont_mv.vtk')
             cont_mv = c
         if mostcommon == 37:
             print('Detected LAA')
             if save == True:
-                writevtk(c, filename[0:len(filename) - 4] + '_cont_laa.vtk')
+                #check if file exists BEFORE WRITING
+                if not os.path.isfile(filename[0:len(filename) - 4] + '_cont_laa.vtk'):
+                    writevtk(c, filename[0:len(filename) - 4] + '_cont_laa.vtk')
+                else:
+                    writevtk(c, filename[0:len(filename) - 4] + str(i) + '_cont_laa.vtk')
             cont_laa = c
         if mostcommon == 76:
             print('Detected RSPV')
             if save == True:
-                writevtk(c, filename[0:len(filename) - 4] + '_cont_rspv.vtk')
+                #check if file exists BEFORE WRITING
+                if not os.path.isfile(filename[0:len(filename) - 4] + '_cont_rspv.vtk'):
+                    writevtk(c, filename[0:len(filename) - 4] + '_cont_rspv.vtk')
+                else:
+                    writevtk(c, filename[0:len(filename) - 4] + str(i) + '_cont_rspv.vtk')
             cont_rspv = c
         if mostcommon == 77:
             print('Detected RIPV')
             if save == True:
-                writevtk(c, filename[0:len(filename) - 4] + '_cont_ripv.vtk')
+                #check if file exists BEFORE WRITING
+                if not os.path.isfile(filename[0:len(filename) - 4] + '_cont_ripv.vtk'):
+                    writevtk(c, filename[0:len(filename) - 4] + '_cont_ripv.vtk')
+                else:
+                    writevtk(c, filename[0:len(filename) - 4] + str(i) + '_cont_ripv.vtk')
             cont_ripv = c
         if mostcommon == 78:
             print('Detected LSPV')
             if save == True:
-                writevtk(c, filename[0:len(filename) - 4] + '_cont_lspv.vtk')
+                #check if file exists BEFORE WRITING
+                if not os.path.isfile(filename[0:len(filename) - 4] + '_cont_lspv.vtk'):
+                    writevtk(c, filename[0:len(filename) - 4] + '_cont_lspv.vtk')
+                else:
+                    writevtk(c, filename[0:len(filename) - 4] + str(i) + '_cont_lspv.vtk')
             cont_lspv = c
         if mostcommon == 79:
             print('Detected LIPV')
             if save == True:
-                writevtk(c, filename[0:len(filename) - 4] + '_cont_lipv.vtk')
+                #check if file exists BEFORE WRITING
+                if not os.path.isfile(filename[0:len(filename) - 4] + '_cont_lipv.vtk'):
+                    writevtk(c, filename[0:len(filename) - 4] + '_cont_lipv.vtk')
+                else:
+                    writevtk(c, filename[0:len(filename) - 4] + str(i) + '_cont_lipv.vtk')
             cont_lipv = c
             
     # visualize contours
     
-    
-    return cont_rspv, cont_ripv, cont_lipv, cont_lspv, cont_mv, cont_laa
+    if cut_laa == 0:
+        return cont_rspv, cont_ripv, cont_lipv, cont_lspv, cont_mv, cont_laa
+    else:
+        return cont_rspv, cont_ripv, cont_lipv, cont_lspv, cont_mv
 
-def build_locators(mesh, m_open, cont_rspv, cont_ripv, cont_lipv, cont_lspv, cont_laa):
+def build_locators(mesh, m_open, cont_rspv, cont_ripv, cont_lipv, cont_lspv, cont_laa, cut_laa=0):
     """Build different locators to find corresponding points between different meshes (open/closed, open/contours, etc)"""
     locator = vtk.vtkPointLocator()
     locator.SetDataSet(mesh)  # clipped + CLOSED - where the seeds are marked
@@ -663,13 +695,17 @@ def build_locators(mesh, m_open, cont_rspv, cont_ripv, cont_lipv, cont_lspv, con
     locator_lspv = vtk.vtkPointLocator()
     locator_lspv.SetDataSet(cont_lspv)
     locator_lspv.BuildLocator()
-
-    locator_laa = vtk.vtkPointLocator()
-    locator_laa.SetDataSet(cont_laa)
-    locator_laa.BuildLocator()
+    if cut_laa == 0:
+        locator_laa = vtk.vtkPointLocator()
+        locator_laa.SetDataSet(cont_laa)
+        locator_laa.BuildLocator()
+    else:
+        locator_laa = None
+        
     return locator, locator_open, locator_rspv, locator_ripv, locator_lipv, locator_lspv, locator_laa
 
-def read_paths(filename, npaths):
+
+def read_paths(filename, npaths, cut_laa=0):
     """read the paths (lines) defined in the 3D mesh using 3_divide_LA.py"""
     for i in range(npaths):
         if os.path.isfile(filename[0:len(filename)-4]+'path'+ str(i+1) +'.vtk')==False:
@@ -690,21 +726,28 @@ def read_paths(filename, npaths):
             elif i == 6:
                 path7 = readvtk(filename[0:len(filename) - 4] + 'path' + str(i + 1) + '.vtk')
     # read laa related paths: line from lspv to laa and from laa to mv
-    if os.path.isfile(filename[0:len(filename)-4] + 'path_laa1.vtk')==False:
-        sys.exit('ERROR: dividing line path_laa1 not found. Run 3_divide_LA.py')
-    else:
-        path_laa1 = readvtk(filename[0:len(filename)-4] + 'path_laa1.vtk')
+    if cut_laa == 0:
+        if os.path.isfile(filename[0:len(filename)-4] + 'path_laa1.vtk')==False:
+            sys.exit('ERROR: dividing line path_laa1 not found. Run 3_divide_LA.py')
+        else:
+            path_laa1 = readvtk(filename[0:len(filename)-4] + 'path_laa1.vtk')
 
-    if os.path.isfile(filename[0:len(filename)-4] + 'path_laa2.vtk')==False:
-        sys.exit('ERROR: dividing line path_laa2 not found. Run 3_divide_LA.py')
-    else:
-        path_laa2 = readvtk(filename[0:len(filename)-4] + 'path_laa2.vtk')
+        if os.path.isfile(filename[0:len(filename)-4] + 'path_laa2.vtk')==False:
+            sys.exit('ERROR: dividing line path_laa2 not found. Run 3_divide_LA.py')
+        else:
+            path_laa2 = readvtk(filename[0:len(filename)-4] + 'path_laa2.vtk')
 
-    if os.path.isfile(filename[0:len(filename)-4] + 'path_laa3.vtk')==False:
-        sys.exit('ERROR: dividing line path_laa3 not found. Run 3_divide_LA.py')
+        if os.path.isfile(filename[0:len(filename)-4] + 'path_laa3.vtk')==False:
+            sys.exit('ERROR: dividing line path_laa3 not found. Run 3_divide_LA.py')
+        else:
+            path_laa3 = readvtk(filename[0:len(filename)-4] + 'path_laa3.vtk')
+        path8 = None
     else:
-        path_laa3 = readvtk(filename[0:len(filename)-4] + 'path_laa3.vtk')
-    return path1, path2, path3, path4, path5, path6, path7, path_laa1, path_laa2, path_laa3
+        path_laa1 = None
+        path_laa2 = None
+        path_laa3 = None
+        path8 = readvtk(filename[0:len(filename)-4] + 'path8.vtk')
+    return path1, path2, path3, path4, path5, path6, path7, path_laa1, path_laa2, path_laa3, path8
 
 def get_mv_contour_ids(cont_mv, locator_open):
     """Obtain ids of the MV contour"""
@@ -715,10 +758,10 @@ def get_mv_contour_ids(cont_mv, locator_open):
         mv_cont_ids[i] = locator_open.FindClosestPoint(p)
     return mv_cont_ids
 
-def identify_segments_extremes(path1, path2, path3, path4, path5, path6, path7, path_laa1, path_laa2, path_laa3,
+def identify_segments_extremes(path1, path2, path3, path4, path5, path6, path7, path8, path_laa1, path_laa2, path_laa3,
                                locator_open, locator_rspv, locator_ripv, locator_lipv, locator_lspv, locator_laa,
                                cont_rspv, cont_ripv, cont_lipv, cont_lspv, cont_laa,
-                               v5, v6, v7, v8):
+                               v5, v6, v7, v8, cut_laa=0):
     """Identify ids in the to_be_flat mesh corresponding to the segment extremes: v1d, v1r, ect."""
     # start with segments of PVs because they will modify the rest of segments (we try to have uniform number of points in the 3 segments of the veins)
     # first identify ALL pv segments extremes (v1d, v2u etc.)
@@ -802,35 +845,48 @@ def identify_segments_extremes(path1, path2, path3, path4, path5, path6, path7, 
     v3l = locator_open.FindClosestPoint(path7.GetPoint(v3l_in_path7))
 
     # S8a -> segment from v4 (lspv) to LAA
-    dists1 = np.zeros(path_laa1.GetNumberOfPoints())
-    dists2 = np.zeros(path_laa1.GetNumberOfPoints())
-    for i in range(path_laa1.GetNumberOfPoints()):
-        p = path_laa1.GetPoint(i)
-        dists1[i] = euclideandistance(p, cont_lspv.GetPoint(locator_lspv.FindClosestPoint(p)))
-        dists2[i] = euclideandistance(p, cont_laa.GetPoint(locator_laa.FindClosestPoint(p)))
-    v4u_in_pathlaa1 = np.argmin(dists1)
-    vlaad_in_pathlaa1 = np.argmin(dists2)
-    v4u = locator_open.FindClosestPoint(path_laa1.GetPoint(v4u_in_pathlaa1))
-    vlaad = locator_open.FindClosestPoint(path_laa1.GetPoint(vlaad_in_pathlaa1))
+    if cut_laa == 0:
+        dists1 = np.zeros(path_laa1.GetNumberOfPoints())
+        dists2 = np.zeros(path_laa1.GetNumberOfPoints())
+        for i in range(path_laa1.GetNumberOfPoints()):
+            p = path_laa1.GetPoint(i)
+            dists1[i] = euclideandistance(p, cont_lspv.GetPoint(locator_lspv.FindClosestPoint(p)))
+            dists2[i] = euclideandistance(p, cont_laa.GetPoint(locator_laa.FindClosestPoint(p)))
+        v4u_in_pathlaa1 = np.argmin(dists1)
+        vlaad_in_pathlaa1 = np.argmin(dists2)
+        v4u = locator_open.FindClosestPoint(path_laa1.GetPoint(v4u_in_pathlaa1))
+        vlaad = locator_open.FindClosestPoint(path_laa1.GetPoint(vlaad_in_pathlaa1))
 
-    # S8b -> segment from LAA to V8 (MV)
-    dists1 = np.zeros(path_laa2.GetNumberOfPoints())
-    for i in range(path_laa2.GetNumberOfPoints()):
-        p = path_laa2.GetPoint(i)
-        dists1[i] = euclideandistance(p, cont_laa.GetPoint(locator_laa.FindClosestPoint(p)))
-    vlaau_in_pathlaa2 = np.argmin(dists1)
-    vlaau = locator_open.FindClosestPoint(path_laa2.GetPoint(vlaau_in_pathlaa2))
+        # S8b -> segment from LAA to V8 (MV)
+        dists1 = np.zeros(path_laa2.GetNumberOfPoints())
+        for i in range(path_laa2.GetNumberOfPoints()):
+            p = path_laa2.GetPoint(i)
+            dists1[i] = euclideandistance(p, cont_laa.GetPoint(locator_laa.FindClosestPoint(p)))
+        vlaau_in_pathlaa2 = np.argmin(dists1)
+        vlaau = locator_open.FindClosestPoint(path_laa2.GetPoint(vlaau_in_pathlaa2))
 
-    # aux point vlaar (connecting laa and rspv - auxiliary to know laa contour direction)
-    dists1 = np.zeros(path_laa3.GetNumberOfPoints())
-    for i in range(path_laa3.GetNumberOfPoints()):
-        p = path_laa3.GetPoint(i)
-        dists1[i] = euclideandistance(p, cont_laa.GetPoint(locator_laa.FindClosestPoint(p)))
-    vlaar_in_pathlaa3 = np.argmin(dists1)
-    vlaar = locator_open.FindClosestPoint(path_laa3.GetPoint(vlaar_in_pathlaa3))
+        # aux point vlaar (connecting laa and rspv - auxiliary to know laa contour direction)
+        dists1 = np.zeros(path_laa3.GetNumberOfPoints())
+        for i in range(path_laa3.GetNumberOfPoints()):
+            p = path_laa3.GetPoint(i)
+            dists1[i] = euclideandistance(p, cont_laa.GetPoint(locator_laa.FindClosestPoint(p)))
+        vlaar_in_pathlaa3 = np.argmin(dists1)
+        vlaar = locator_open.FindClosestPoint(path_laa3.GetPoint(vlaar_in_pathlaa3))
+    else:
+        # v4u in path 8
+        dists1 = np.zeros(path8.GetNumberOfPoints())
+        for i in range(path8.GetNumberOfPoints()):
+            p = path8.GetPoint(i)
+            dists1[i] = euclideandistance(p, cont_lspv.GetPoint(locator_lspv.FindClosestPoint(p)))
+        v4u_in_path8 = np.argmin(dists1)
+        v4u = locator_open.FindClosestPoint(path8.GetPoint(v4u_in_path8))
+        # v4u = None
+        vlaad = None
+        vlaau = None
+        vlaar = None
     return v1r, v1d, v1l, v2u, v2r, v2l, v3u, v3r, v3l, v4r, v4u, v4d, vlaad, vlaau, vlaar, id_v5, id_v6, id_v7, id_v8
 
-def get_rspv_segments_ids(cont_rspv, locator_open, v1l, v1d, v1r, propn_rspv_s1, propn_rspv_s2, propn_rspv_s3):
+def get_rspv_segments_ids(cont_rspv, locator_open, v1l, v1d, v1r, propn_rspv_s1, propn_rspv_s2, propn_rspv_s3, m_open):
     """ Return 3 arrays with ids of each of the 3 segments in rspv contour.
         Return also the modified (to have proportional number of points in the segments) extreme ids"""
     edge_cont_rspv = get_ordered_cont_ids_based_on_distance(cont_rspv)
@@ -838,10 +894,30 @@ def get_rspv_segments_ids(cont_rspv, locator_open, v1l, v1d, v1r, propn_rspv_s1,
     for i in range(rspv_cont_ids.shape[0]):
         p = cont_rspv.GetPoint(edge_cont_rspv[i])
         rspv_cont_ids[i] = locator_open.FindClosestPoint(p)
-    pos_v1l = int(np.where(rspv_cont_ids == v1l)[0])
+    try:
+        pos_v1l = int(np.where(rspv_cont_ids == v1l)[0])
+    except:        
+        # find closest point in countor to v1l
+        # locator for contour
+        locator_countor = vtk.vtkPointLocator()
+        locator_countor.SetDataSet(cont_rspv)
+        locator_countor.BuildLocator()
+        pos_v1l = locator_countor.FindClosestPoint(m_open.GetPoint(v1l))
+        # p_v1l = m_open.GetPoint(locator_open.FindClosestPoint(v1l))
+        # pos_v1l = np.argmin(np.abs(rspv_cont_ids - locator_open.FindClosestPoint(p_v1l)))
+        
     rspv_ids = np.append(rspv_cont_ids[pos_v1l:rspv_cont_ids.size], rspv_cont_ids[0:pos_v1l])
     pos_v1d = int(np.where(rspv_ids == v1d)[0])
-    pos_v1r = int(np.where(rspv_ids == v1r)[0])
+    try:
+        
+        pos_v1r = int(np.where(rspv_ids == v1r)[0])
+        
+    except:
+        locator_countor = vtk.vtkPointLocator()
+        locator_countor.SetDataSet(cont_rspv)
+        locator_countor.BuildLocator()
+        pos_v1r = locator_countor.FindClosestPoint(m_open.GetPoint(v1r))
+        
     if pos_v1r < pos_v1d:   # flip
         aux = np.zeros(rspv_ids.size)
         for i in range(rspv_ids.size):
@@ -850,8 +926,17 @@ def get_rspv_segments_ids(cont_rspv, locator_open, v1l, v1d, v1r, propn_rspv_s1,
         flipped = np.append(aux[aux.size - 1], aux[0:aux.size - 1])
         rspv_ids = flipped.astype(int)
     rspv_s1 = rspv_ids[0:int(np.where(rspv_ids == v1d)[0])]
-    rspv_s2 = rspv_ids[int(np.where(rspv_ids == v1d)[0]): int(np.where(rspv_ids == v1r)[0])]
-    rspv_s3 = rspv_ids[int(np.where(rspv_ids == v1r)[0]): rspv_ids.size]
+    try:
+        rspv_s2 = rspv_ids[int(np.where(rspv_ids == v1d)[0]): int(np.where(rspv_ids == v1r)[0])]
+    except:
+        # find closest point in countor to v1r
+        # locator for contour
+        locator_countor = vtk.vtkPointLocator()
+        locator_countor.SetDataSet(cont_rspv)
+        locator_countor.BuildLocator()
+        pos_v1r = locator_countor.FindClosestPoint(m_open.GetPoint(v1r))
+        rspv_s2 = rspv_ids[int(np.where(rspv_ids == v1d)[0]): pos_v1r]
+    # rspv_s3 = rspv_ids[int(np.where(rspv_ids == v1r)[0]): rspv_ids.size]
 
     # # correct to have proportional segments length
     # s1_prop_length = round(propn_rspv_s1*len(rspv_ids))
@@ -889,9 +974,30 @@ def get_ripv_segments_ids(cont_ripv, locator_open, v2l, v2r, v2u, propn_ripv_s1,
     for i in range(ripv_cont_ids.shape[0]):
         p = cont_ripv.GetPoint(edge_cont_ripv[i])
         ripv_cont_ids[i] = locator_open.FindClosestPoint(p)
-    pos_v2l = int(np.where(ripv_cont_ids == v2l)[0])
+    try:
+        pos_v2l = int(np.where(ripv_cont_ids == v2l)[0])
+    except:
+        # find closest point in countor to v2l
+        # locator for contour
+        locator_countor = vtk.vtkPointLocator()
+        locator_countor.SetDataSet(cont_ripv)
+        locator_countor.BuildLocator()
+        pos_v2l = locator_countor.FindClosestPoint(locator_open.GetDataSet().GetPoint(v2l))
+        # p_v2l = m_open.GetPoint(locator_open.FindClosestPoint(v2l))
+        # pos_v2l = np.argmin(np.abs(ripv_cont_ids - locator_open.FindClosestPoint(p_v2l)))
     ripv_ids = np.append(ripv_cont_ids[pos_v2l:ripv_cont_ids.size], ripv_cont_ids[0:pos_v2l])
-    pos_v2r = int(np.where(ripv_ids == v2r)[0])
+    try:
+        pos_v2r = int(np.where(ripv_ids == v2r)[0])
+    except:
+        
+        # find closest point in countor to v2r
+        # locator for contour
+        locator_countor = vtk.vtkPointLocator()
+        locator_countor.SetDataSet(cont_ripv)
+        locator_countor.BuildLocator()
+        pos_v2r = locator_countor.FindClosestPoint(locator_open.GetDataSet().GetPoint(v2r))
+        # p_v2r = m_open.GetPoint(locator_open.FindClosestPoint(v2r))
+        # pos_v2r = np.argmin(np.abs(ripv_ids - locator_open.FindClosestPoint(p_v2r)))
     pos_v2u = int(np.where(ripv_ids == v2u)[0])
     if pos_v2u < pos_v2r:  # flip
         aux = np.zeros(ripv_ids.size)
@@ -899,20 +1005,46 @@ def get_ripv_segments_ids(cont_ripv, locator_open, v2l, v2r, v2u, propn_ripv_s1,
             aux[ripv_ids.size - 1 - i] = ripv_ids[i]
         flipped = np.append(aux[aux.size - 1], aux[0:aux.size - 1])
         ripv_ids = flipped.astype(int)
-    ripv_s1 = ripv_ids[0:int(np.where(ripv_ids == v2r)[0])]
-    ripv_s2 = ripv_ids[int(np.where(ripv_ids == v2r)[0]): int(np.where(ripv_ids == v2u)[0])]
-    ripv_s3 = ripv_ids[int(np.where(ripv_ids == v2u)[0]): ripv_ids.size]
+    try:
+        ripv_s1 = ripv_ids[0:int(np.where(ripv_ids == v2r)[0])]
+    except:
+        # find closest point in countor to v2r
+        # locator for contour
+        locator_countor = vtk.vtkPointLocator()
+        locator_countor.SetDataSet(cont_ripv)
+        locator_countor.BuildLocator()
+        pos_v2r = locator_countor.FindClosestPoint(locator_open.GetDataSet().GetPoint(v2r))
+        ripv_s1 = ripv_ids[0:int(pos_v2r)]
+    try:
+        ripv_s2 = ripv_ids[int(np.where(ripv_ids == v2r)[0]): int(np.where(ripv_ids == v2u)[0])]
+    except:
+        # find closest point in countor to v2u
+        # locator for contour
+        locator_countor = vtk.vtkPointLocator()
+        locator_countor.SetDataSet(cont_ripv)
+        locator_countor.BuildLocator()
+        pos_v2u = locator_countor.FindClosestPoint(locator_open.GetDataSet().GetPoint(v2u))
+        try:
+            ripv_s2 = ripv_ids[int(np.where(ripv_ids == v2r)[0]): pos_v2u]
+        except:
+            # find closest point in countor to v2r
+            locator_countor = vtk.vtkPointLocator()
+            locator_countor.SetDataSet(cont_ripv)
+            locator_countor.BuildLocator()
+            pos_v2r = locator_countor.FindClosestPoint(locator_open.GetDataSet().GetPoint(v2r))
+            ripv_s2 = ripv_ids[int(pos_v2r): int(pos_v2u)]
+    # ripv_s3 = ripv_ids[int(np.where(ripv_ids == v2u)[0]): ripv_ids.size]
 
     # # # correct to have proportional segments length
-    # s1_prop_length = round(propn_ripv_s1 * len(ripv_ids))
-    # s2_prop_length = round(propn_ripv_s2 * len(ripv_ids))
-    # s3_prop_length = round(propn_ripv_s3 * len(ripv_ids))
-    # v2l_prop = v2l  # stays the same, reference
-    # v2r_prop = ripv_ids[int(s1_prop_length)]
-    # v2u_prop = ripv_ids[int(s1_prop_length + s2_prop_length)]
-    # ripv_s1_prop = ripv_ids[0:int(s1_prop_length)]
-    # ripv_s2_prop = ripv_ids[int(s1_prop_length): int(s1_prop_length + s2_prop_length)]
-    # ripv_s3_prop = ripv_ids[int(s1_prop_length + s2_prop_length): ripv_ids.size]
+    s1_prop_length = round(propn_ripv_s1 * len(ripv_ids))
+    s2_prop_length = round(propn_ripv_s2 * len(ripv_ids))
+    s3_prop_length = round(propn_ripv_s3 * len(ripv_ids))
+    v2l_prop = v2l  # stays the same, reference
+    v2r_prop = ripv_ids[int(s1_prop_length)]
+    v2u_prop = ripv_ids[int(s1_prop_length + s2_prop_length)]
+    ripv_s1_prop = ripv_ids[0:int(s1_prop_length)]
+    ripv_s2_prop = ripv_ids[int(s1_prop_length): int(s1_prop_length + s2_prop_length)]
+    ripv_s3_prop = ripv_ids[int(s1_prop_length + s2_prop_length): ripv_ids.size]
 
     # INTERMEDIATE solution.
     s1_prop_length = round(propn_ripv_s1 * len(ripv_ids))
@@ -924,7 +1056,7 @@ def get_ripv_segments_ids(cont_ripv, locator_open, v2l, v2r, v2u, propn_ripv_s1,
     ripv_s1_prop = ripv_ids[0:int(ripv_s1.size + ripv_s1_offset)]
     new_s2_size = ripv_s2.size - ripv_s1_offset
     ripv_s2_offset = np.floor((s2_prop_length - new_s2_size)/2)
-    v2u_prop = ripv_ids[int(ripv_s1_prop.size + new_s2_size + ripv_s2_offset)]
+    # v2u_prop = ripv_ids[int(ripv_s1_prop.size + new_s2_size + ripv_s2_offset)]
     ripv_s2_prop = ripv_ids[int(ripv_s1.size + ripv_s1_offset):int(ripv_s1.size + ripv_s1_offset + new_s2_size + ripv_s2_offset)]
     ripv_s3_prop = ripv_ids[int(ripv_s1.size + ripv_s1_offset + new_s2_size + ripv_s2_offset): ripv_ids.size]
     # print('RIPV original lengths', ripv_s1.size, ripv_s2.size, ripv_s3.size)
@@ -939,19 +1071,75 @@ def get_lipv_segments_ids(cont_lipv, locator_open, v3r, v3u, v3l, propn_lipv_s1,
     for i in range(lipv_cont_ids.shape[0]):
         p = cont_lipv.GetPoint(edge_cont_lipv[i])
         lipv_cont_ids[i] = locator_open.FindClosestPoint(p)
-    pos_v3r = int(np.where(lipv_cont_ids == v3r)[0])
+    try:
+        pos_v3r = int(np.where(lipv_cont_ids == v3r)[0])
+    except:
+        # find closest point in countor to v3r
+        # locator for contour
+        locator_countor = vtk.vtkPointLocator()
+        locator_countor.SetDataSet(cont_lipv)
+        locator_countor.BuildLocator()
+        pos_v3r = locator_countor.FindClosestPoint(locator_open.GetDataSet().GetPoint(v3r))
+        # p_v3r = m_open.GetPoint(locator_open.FindClosestPoint(v3r))
+        # pos_v3r = np.argmin(np.abs(lipv_cont_ids - locator_open.FindClosestPoint(p_v3r)))
     lipv_ids = np.append(lipv_cont_ids[pos_v3r:lipv_cont_ids.size], lipv_cont_ids[0:pos_v3r])
-    pos_v3u = int(np.where(lipv_ids == v3u)[0])
-    pos_v3l = int(np.where(lipv_ids == v3l)[0])
+    try:
+        pos_v3u = int(np.where(lipv_ids == v3u)[0])
+    except:
+        # find closest point in countor to v3u
+        # locator for contour
+        locator_countor = vtk.vtkPointLocator()
+        locator_countor.SetDataSet(cont_lipv)
+        locator_countor.BuildLocator()
+        pos_v3u = locator_countor.FindClosestPoint(locator_open.GetDataSet().GetPoint(v3u))
+        # p_v3u = m_open.GetPoint(locator_open.FindClosestPoint(v3u))
+        # pos_v3u = np.argmin(np.abs(lipv_ids - locator_open.FindClosestPoint(p_v3u)))
+    try:
+        pos_v3l = int(np.where(lipv_ids == v3l)[0])
+    except:
+        # find closest point in countor to v3l
+        # locator for contour
+        locator_countor = vtk.vtkPointLocator()
+        locator_countor.SetDataSet(cont_lipv)
+        locator_countor.BuildLocator()
+        pos_v3l = locator_countor.FindClosestPoint(locator_open.GetDataSet().GetPoint(v3l))
+        # p_v3l = m_open.GetPoint(locator_open.FindClosestPoint(v3l))
+        # pos_v3l = np.argmin(np.abs(lipv_ids - locator_open.FindClosestPoint(p_v3l)))
     if pos_v3l < pos_v3u:  # flip
         aux = np.zeros(lipv_ids.size)
         for i in range(lipv_ids.size):
             aux[lipv_ids.size - 1 - i] = lipv_ids[i]
         flipped = np.append(aux[aux.size - 1], aux[0:aux.size - 1])
         lipv_ids = flipped.astype(int)
-    lipv_s1 = lipv_ids[0:int(np.where(lipv_ids == v3u)[0])]
-    lipv_s2 = lipv_ids[int(np.where(lipv_ids == v3u)[0]): int(np.where(lipv_ids == v3l)[0])]
-    lipv_s3 = lipv_ids[int(np.where(lipv_ids == v3l)[0]): lipv_ids.size]
+    try:
+        lipv_s1 = lipv_ids[0:int(np.where(lipv_ids == v3u)[0])]
+    except:
+        # find closest point in countor to v3u
+        # locator for contour
+        locator_countor = vtk.vtkPointLocator()
+        locator_countor.SetDataSet(cont_lipv)
+        locator_countor.BuildLocator()
+        pos_v3u = locator_countor.FindClosestPoint(locator_open.GetDataSet().GetPoint(v3u))
+        lipv_s1 = lipv_ids[0:int(pos_v3u)]
+    try:
+        lipv_s2 = lipv_ids[int(np.where(lipv_ids == v3u)[0]): int(np.where(lipv_ids == v3l)[0])]
+    except:
+        # find closest point in countor to v3l
+        # locator for contour
+        locator_countor = vtk.vtkPointLocator()
+        locator_countor.SetDataSet(cont_lipv)
+        locator_countor.BuildLocator()
+        pos_v3l = locator_countor.FindClosestPoint(locator_open.GetDataSet().GetPoint(v3l))
+        try:
+            lipv_s2 = lipv_ids[int(np.where(lipv_ids == v3u)[0]): pos_v3l]
+        except:
+            # find closest point in countor to v3u
+            locator_countor = vtk.vtkPointLocator()
+            locator_countor.SetDataSet(cont_lipv)
+            locator_countor.BuildLocator()
+            pos_v3u = locator_countor.FindClosestPoint(locator_open.GetDataSet().GetPoint(v3u))
+            lipv_s2 = lipv_ids[int(pos_v3u): int(pos_v3l)]
+    # lipv_s3 = lipv_ids[int(np.where(lipv_ids == v3l)[0]): lipv_ids.size]
 
     # # # correct to have proportional segments length
     # s1_prop_length = round(propn_lipv_s1 * len(lipv_ids))
@@ -989,19 +1177,75 @@ def get_lspv_segments_ids(cont_lspv, locator_open, v4r, v4u, v4d, propn_lspv_s1,
     for i in range(lspv_cont_ids.shape[0]):
         p = cont_lspv.GetPoint(edge_cont_lspv[i])
         lspv_cont_ids[i] = locator_open.FindClosestPoint(p)
-    pos_v4r = int(np.where(lspv_cont_ids == v4r)[0])
+    try:
+        pos_v4r = int(np.where(lspv_cont_ids == v4r)[0])
+    except:
+        # find closest point in countor to v4r
+        # locator for contour
+        locator_countor = vtk.vtkPointLocator()
+        locator_countor.SetDataSet(cont_lspv)
+        locator_countor.BuildLocator()
+        pos_v4r = locator_countor.FindClosestPoint(locator_open.GetDataSet().GetPoint(v4r))
+        # p_v4r = m_open.GetPoint(locator_open.FindClosestPoint(v4r))
+        # pos_v4r = np.argmin(np.abs(lspv_cont_ids - locator_open.FindClosestPoint(p_v4r)))
     lspv_ids = np.append(lspv_cont_ids[pos_v4r:lspv_cont_ids.size], lspv_cont_ids[0:pos_v4r])
-    pos_v4u = int(np.where(lspv_ids == v4u)[0])
-    pos_v4d = int(np.where(lspv_ids == v4d)[0])
+    try:
+        pos_v4u = int(np.where(lspv_ids == v4u)[0])
+    except:
+        # find closest point in countor to v4u
+        # locator for contour
+        locator_countor = vtk.vtkPointLocator()
+        locator_countor.SetDataSet(cont_lspv)
+        locator_countor.BuildLocator()
+        pos_v4u = locator_countor.FindClosestPoint(locator_open.GetDataSet().GetPoint(v4u))
+        # p_v4u = m_open.GetPoint(locator_open.FindClosestPoint(v4u))
+        # pos_v4u = np.argmin(np.abs(lspv_ids - locator_open.FindClosestPoint(p_v4u)))
+    try:
+        pos_v4d = int(np.where(lspv_ids == v4d)[0])
+    except:
+        # find closest point in countor to v4d
+        # locator for contour
+        locator_countor = vtk.vtkPointLocator()
+        locator_countor.SetDataSet(cont_lspv)
+        locator_countor.BuildLocator()
+        pos_v4d = locator_countor.FindClosestPoint(locator_open.GetDataSet().GetPoint(v4d))
+        # p_v4d = m_open.GetPoint(locator_open.FindClosestPoint(v4d))
+        # pos_v4d = np.argmin(np.abs(lspv_ids - locator_open.FindClosestPoint(p_v4d)))
     if pos_v4d < pos_v4u:   # flip
         aux = np.zeros(lspv_ids.size)
         for i in range(lspv_ids.size):
             aux[lspv_ids.size - 1 - i] = lspv_ids[i]
         flipped = np.append(aux[aux.size - 1], aux[0:aux.size - 1])
         lspv_ids = flipped.astype(int)
-    lspv_s1 = lspv_ids[0:int(np.where(lspv_ids == v4u)[0])]
-    lspv_s2 = lspv_ids[int(np.where(lspv_ids == v4u)[0]): int(np.where(lspv_ids == v4d)[0])]
-    lspv_s3 = lspv_ids[int(np.where(lspv_ids == v4d)[0]): lspv_ids.size]
+    try:
+        lspv_s1 = lspv_ids[0:int(np.where(lspv_ids == v4u)[0])]
+    except:
+        # find closest point in countor to v4u
+        # locator for contour
+        locator_countor = vtk.vtkPointLocator()
+        locator_countor.SetDataSet(cont_lspv)
+        locator_countor.BuildLocator()
+        pos_v4u = locator_countor.FindClosestPoint(locator_open.GetDataSet().GetPoint(v4u))
+        lspv_s1 = lspv_ids[0:int(pos_v4u)]
+    try:
+        lspv_s2 = lspv_ids[int(np.where(lspv_ids == v4u)[0]): int(np.where(lspv_ids == v4d)[0])]
+    except:
+        # find closest point in countor to v4d
+        # locator for contour
+        locator_countor = vtk.vtkPointLocator()
+        locator_countor.SetDataSet(cont_lspv)
+        locator_countor.BuildLocator()
+        pos_v4d = locator_countor.FindClosestPoint(locator_open.GetDataSet().GetPoint(v4d))
+        try:
+            lspv_s2 = lspv_ids[int(np.where(lspv_ids == v4u)[0]): pos_v4d]
+        except:
+            # find closest point in countor to v4u
+            locator_countor = vtk.vtkPointLocator()
+            locator_countor.SetDataSet(cont_lspv)
+            locator_countor.BuildLocator()
+            pos_v4u = locator_countor.FindClosestPoint(locator_open.GetDataSet().GetPoint(v4u))
+            lspv_s2 = lspv_ids[int(pos_v4u): int(pos_v4d)]
+    # lspv_s3 = lspv_ids[int(np.where(lspv_ids == v4d)[0]): lspv_ids.size]
 
     ## correct to have proportional segments length
     # s1_prop_length = round(propn_lspv_s1*len(lspv_ids))
@@ -1024,7 +1268,13 @@ def get_lspv_segments_ids(cont_lspv, locator_open, v4r, v4u, v4d, propn_lspv_s1,
     lspv_s1_prop = lspv_ids[0:int(lspv_s1.size + lspv_s1_offset)]
     new_s2_size = lspv_s2.size - lspv_s1_offset
     lspv_s2_offset = np.floor((s2_prop_length - new_s2_size)/2)
-    v4d_prop = lspv_ids[int(lspv_s1_prop.size + new_s2_size + lspv_s2_offset)]
+    try:    
+        v4d_prop = lspv_ids[int(lspv_s1_prop.size + new_s2_size + lspv_s2_offset)]
+    except:
+        v4d_prop = lspv_ids[int(s1_prop_length + s2_prop_length)]
+        # find closest point in countor to v4d
+        # locator for contour
+        
     lspv_s2_prop = lspv_ids[int(lspv_s1.size + lspv_s1_offset):int(lspv_s1.size + lspv_s1_offset + new_s2_size + lspv_s2_offset)]
     lspv_s3_prop = lspv_ids[int(lspv_s1.size + lspv_s1_offset + new_s2_size + lspv_s2_offset): lspv_ids.size]
     # print('LSPV Original lengths', lspv_s1.size, lspv_s2.size, lspv_s3.size)
@@ -1038,20 +1288,66 @@ def get_laa_segments_ids(cont_laa, locator_open, vlaau, vlaad, vlaar):
     for i in range(laa_cont_ids.shape[0]):
         p = cont_laa.GetPoint(edge_cont_laa[i])
         laa_cont_ids[i] = locator_open.FindClosestPoint(p)
-    pos_vlaad = int(np.where(laa_cont_ids == vlaad)[0])  # intersection of laa contour and path 8a (from lspv to laa)
+    try:
+        pos_vlaad = int(np.where(laa_cont_ids == vlaad)[0])  # intersection of laa contour and path 8a (from lspv to laa)
+    except:
+        # find closest point in countor to vlaad
+        # locator for contour
+        locator_countor = vtk.vtkPointLocator()
+        locator_countor.SetDataSet(cont_laa)
+        locator_countor.BuildLocator()
+        pos_vlaad = locator_countor.FindClosestPoint(locator_open.GetDataSet().GetPoint(vlaad))
+        # p_vlaad = m_open.GetPoint(locator_open.FindClosestPoint(vlaad))
+        # pos_vlaad = np.argmin(np.abs(laa_cont_ids - locator_open.FindClosestPoint(p_vlaad)))
     laa_ids = np.append(laa_cont_ids[pos_vlaad:laa_cont_ids.size], laa_cont_ids[0:pos_vlaad])
-
-    pos_vlaar = int(np.where(laa_ids == vlaar)[0])
-    pos_vlaau = int(np.where(laa_ids == vlaau)[0])
+    try:
+        pos_vlaar = int(np.where(laa_ids == vlaar)[0])
+    except:
+        # find closest point in countor to vlaar
+        # locator for contour
+        locator_countor = vtk.vtkPointLocator()
+        locator_countor.SetDataSet(cont_laa)
+        locator_countor.BuildLocator()
+        pos_vlaar = locator_countor.FindClosestPoint(locator_open.GetDataSet().GetPoint(vlaar))
+        # p_vlaar = m_open.GetPoint(locator_open.FindClosestPoint(vlaar))
+        # pos_vlaar = np.argmin(np.abs(laa_ids - locator_open.FindClosestPoint(p_vlaar)))
+    try:
+        pos_vlaau = int(np.where(laa_ids == vlaau)[0])
+    except:
+        # find closest point in countor to vlaau
+        # locator for contour
+        locator_countor = vtk.vtkPointLocator()
+        locator_countor.SetDataSet(cont_laa)
+        locator_countor.BuildLocator()
+        pos_vlaau = locator_countor.FindClosestPoint(locator_open.GetDataSet().GetPoint(vlaau))
+        # p_vlaau = m_open.GetPoint(locator_open.FindClosestPoint(vlaau))
+        # pos_vlaau = np.argmin(np.abs(laa_ids - locator_open.FindClosestPoint(p_vlaau)))
     if pos_vlaau < pos_vlaar:  # flip
         aux = np.zeros(laa_ids.size)
         for i in range(laa_ids.size):
             aux[laa_ids.size - 1 - i] = laa_ids[i]
         flipped = np.append(aux[aux.size - 1], aux[0:aux.size - 1])
         laa_ids = flipped.astype(int)
-
-    laa_s1 = laa_ids[0:int(np.where(laa_ids == vlaau)[0])]
-    laa_s2 = laa_ids[int(np.where(laa_ids == vlaau)[0]): laa_ids.size]
+    try:
+        laa_s1 = laa_ids[0:int(np.where(laa_ids == vlaau)[0])]
+    except:
+        # find closest point in countor to vlaau
+        # locator for contour
+        locator_countor = vtk.vtkPointLocator()
+        locator_countor.SetDataSet(cont_laa)
+        locator_countor.BuildLocator()
+        pos_vlaau = locator_countor.FindClosestPoint(locator_open.GetDataSet().GetPoint(vlaau))
+        laa_s1 = laa_ids[0:int(pos_vlaau)]
+    try:
+        laa_s2 = laa_ids[int(np.where(laa_ids == vlaau)[0]): laa_ids.size]
+    except:
+        # find closest point in countor to vlaau
+        # locator for contour
+        locator_countor = vtk.vtkPointLocator()
+        locator_countor.SetDataSet(cont_laa)
+        locator_countor.BuildLocator()
+        pos_vlaau = locator_countor.FindClosestPoint(locator_open.GetDataSet().GetPoint(vlaau))
+        laa_s2 = laa_ids[int(pos_vlaau):]
     return laa_ids, laa_s1, laa_s2
 
 def get_segment_ids_in_to_be_flat_mesh(path, locator, intersect_end, intersect_beginning):
@@ -1071,7 +1367,7 @@ def get_segment_ids_in_to_be_flat_mesh(path, locator, intersect_end, intersect_b
     return s
 
 def define_boundary_positions(rdisk, rhole_rspv, rhole_ripv, rhole_lipv, rhole_lspv, rhole_laa, xhole_center, yhole_center, laa_hole_center_x, laa_hole_center_y,
-                              s9size, s10size, s11size, s12size, pv_laa_segment_lengths, t_v5, t_v6, t_v7, t_v8):
+                              s9size, s10size, s11size, s12size, pv_laa_segment_lengths, t_v5, t_v6, t_v7, t_v8, cut_laa = 0):
     """Define BOUNDARY target (x0,y0) coordinates given template parameters (hole radii and positions) and number of points of segments"""
     p_bound = s9size + s10size + s11size + s12size + np.sum(pv_laa_segment_lengths)
     x0_bound = np.zeros(int(p_bound))
@@ -1220,31 +1516,34 @@ def define_boundary_positions(rdisk, rhole_rspv, rhole_ripv, rhole_lipv, rhole_l
     t = t[0:len(t)-1]
     x0_bound[ind1: ind2] = np.cos(t) * rhole_lspv + xhole_center[3]
     y0_bound[ind1: ind2] = np.sin(t) * rhole_lspv + yhole_center[3]
-
-    # LAA hole, circumf
-    # laa s1, starts in 3*pi/2
-    ind1 = ind2
-    ind2 = ind2 + pv_laa_segment_lengths[4, 0]
-    t = np.linspace(3*np.pi/2, t_v8 + 2*np.pi, pv_laa_segment_lengths[4, 0]+1, endpoint=True)  # skip last one later
-    t = t[0:len(t)-1]
-    x0_bound[ind1: ind2] = np.cos(t) * rhole_laa + laa_hole_center_x
-    y0_bound[ind1: ind2] = np.sin(t) * rhole_laa + laa_hole_center_y
-    # laa s2
-    ind1 = ind2
-    ind2 = ind2 + pv_laa_segment_lengths[4, 1]
-    t = np.linspace(t_v8, 3*np.pi/2, pv_laa_segment_lengths[4, 1]+1, endpoint=True)  # skip last one later
-    t = t[0:len(t)-1]
-    x0_bound[ind1: ind2] = np.cos(t) * rhole_laa + laa_hole_center_x
-    y0_bound[ind1: ind2] = np.sin(t) * rhole_laa + laa_hole_center_y
+    if cut_laa == 0:
+        # LAA hole, circumf
+        # laa s1, starts in 3*pi/2
+        ind1 = ind2
+        ind2 = ind2 + pv_laa_segment_lengths[4, 0]
+        t = np.linspace(3*np.pi/2, t_v8 + 2*np.pi, pv_laa_segment_lengths[4, 0]+1, endpoint=True)  # skip last one later
+        t = t[0:len(t)-1]
+        x0_bound[ind1: ind2] = np.cos(t) * rhole_laa + laa_hole_center_x
+        y0_bound[ind1: ind2] = np.sin(t) * rhole_laa + laa_hole_center_y
+        # laa s2
+        ind1 = ind2
+        ind2 = ind2 + pv_laa_segment_lengths[4, 1]
+        t = np.linspace(t_v8, 3*np.pi/2, pv_laa_segment_lengths[4, 1]+1, endpoint=True)  # skip last one later
+        t = t[0:len(t)-1]
+        x0_bound[ind1: ind2] = np.cos(t) * rhole_laa + laa_hole_center_x
+        y0_bound[ind1: ind2] = np.sin(t) * rhole_laa + laa_hole_center_y
     return x0_bound, y0_bound
 
 
-def define_constraints_positions(s1, s2, s3, s4, s5, s6, s7, s8a, s8b, v1l_x, v1l_y, v1d_x, v1d_y, v1r_x, v1r_y, v2l_x,
+def define_constraints_positions(s1, s2, s3, s4, s5, s6, s7, s8, s8a, s8b, v1l_x, v1l_y, v1d_x, v1d_y, v1r_x, v1r_y, v2l_x,
                                  v2l_y, v2r_x, v2r_y, v2u_x, v2u_y, v3r_x, v3r_y, v3u_x, v3u_y, v3l_x, v3l_y,
                                  v4r_x, v4r_y, v4u_x, v4u_y, v4d_x, v4d_y, vlaad_x, vlaad_y, vlaau_x, vlaau_y, p5_x,
-                                 p5_y, p6_x, p6_y, p7_x, p7_y, p8_x, p8_y):
+                                 p5_y, p6_x, p6_y, p7_x, p7_y, p8_x, p8_y, cut_laa = 0):
     """Define target (x0,y0) coordinates of regional constraints given segments and template parameters (extreme coordinates of segments)"""
-    p_const = s1.shape[0] + s2.shape[0] + s3.shape[0] + s4.shape[0] + s5.shape[0] + s6.shape[0] + s7.shape[0] + s8a.shape[0] + s8b.shape[0]
+    if cut_laa == 0:
+        p_const = s1.shape[0] + s2.shape[0] + s3.shape[0] + s4.shape[0] + s5.shape[0] + s6.shape[0] + s7.shape[0] + s8a.shape[0] + s8b.shape[0]
+    else:
+        p_const = s1.shape[0] + s2.shape[0] + s3.shape[0] + s4.shape[0] + s5.shape[0] + s6.shape[0] + s7.shape[0] + s8.shape[0]
     x0_const = np.zeros(p_const)
     y0_const = np.zeros(p_const)
     # s1, vert line, right
@@ -1323,25 +1622,37 @@ def define_constraints_positions(s1, s2, s3, s4, s5, s6, s7, s8a, s8b, v1l_x, v1
     # x0_const[ind1: ind2] = xhole_center[3]
     # y0_const[ind1: ind2] = aux[1:aux.size-1]
 
-    # s8a  - crosswise line from lspv (v4u) to laa
-    ind1 = ind2
-    ind2 = ind2 + s8a.shape[0]
-    aux = np.linspace(v4u_x, vlaad_x, s8a.shape[0] + 2, endpoint=True)
-    x0_const[ind1: ind2] = aux[1:aux.size - 1]
-    m = (vlaad_y - v4u_y) / (vlaad_x - v4u_x)
-    b = v4u_y - m * v4u_x
-    aux2 = m * aux + b
-    y0_const[ind1: ind2] = aux2[1:aux2.size - 1]
+    if cut_laa == 0:
+        # s8a  - crosswise line from lspv (v4u) to laa
+        ind1 = ind2
+        ind2 = ind2 + s8a.shape[0]
+        aux = np.linspace(v4u_x, vlaad_x, s8a.shape[0] + 2, endpoint=True)
+        x0_const[ind1: ind2] = aux[1:aux.size - 1]
+        m = (vlaad_y - v4u_y) / (vlaad_x - v4u_x)
+        b = v4u_y - m * v4u_x
+        aux2 = m * aux + b
+        y0_const[ind1: ind2] = aux2[1:aux2.size - 1]
 
-    # s8b- line crosswise line from vlaau to v8
-    ind1 = ind2
-    ind2 = ind2 + s8b.shape[0]
-    m = (p8_y - vlaau_y) / (p8_x - vlaau_x)
-    b = vlaau_y - m * vlaau_x
-    if p8_x > vlaau_x:
-        print('Warning: v8 is greater (in absolute value) than v_laa_up, consider select a different angle for point V8')
-    aux = np.linspace(vlaau_x, p8_x, s8b.shape[0] + 2, endpoint=True)
-    aux2 = m * aux + b
+        # s8b- line crosswise line from vlaau to v8
+        ind1 = ind2
+        ind2 = ind2 + s8b.shape[0]
+        m = (p8_y - vlaau_y) / (p8_x - vlaau_x)
+        b = vlaau_y - m * vlaau_x
+        if p8_x > vlaau_x:
+            print('Warning: v8 is greater (in absolute value) than v_laa_up, consider select a different angle for point V8')
+        aux = np.linspace(vlaau_x, p8_x, s8b.shape[0] + 2, endpoint=True)
+        aux2 = m * aux + b
+    else:
+        # s8 - crosswise line from lspv (v4u) to v8
+        ind1 = ind2
+        ind2 = ind2 + s8.shape[0]
+        m = (p8_y - v4u_y) / (p8_x - v4u_x)
+        b = v4u_y - m * v4u_x
+        aux = np.linspace(v4u_x, p8_x, s8.shape[0] + 2, endpoint=True)
+        aux2 = m * aux + b
+        x0_const[ind1: ind2] = aux[1:aux.size - 1]
+        y0_const[ind1: ind2] = aux2[1:aux2.size - 1]
+
     x0_const[ind1: ind2] = aux[1:aux.size - 1]
     y0_const[ind1: ind2] = aux2[1:aux2.size - 1]
     return x0_const, y0_const
@@ -1370,6 +1681,27 @@ def ExtractVTKTriFaces(mesh):
         faces[i, 2] = ptIDs.GetId(2)
     return faces
 
+def DeleteNonTriangularFaces(mesh):
+    """Delete non-triangular faces from vtkPolyData."""
+    m = mesh.GetNumberOfCells()
+    to_delete = []
+    # Initialize list to mark cells for deletion
+
+    for i in range(m):
+        ptIDs = vtk.vtkIdList()
+        mesh.GetCellPoints(i, ptIDs)
+        if ptIDs.GetNumberOfIds() != 3:
+             to_delete.append(i)  # Mark non-triangular cells for deletion
+   # Delete cells if any were marked
+    if len(to_delete) > 0:
+        mesh.BuildLinks()  # Required before modification
+        
+        # Modern VTK deletion approach
+        for i in range(len(to_delete) - 1, -1, -1):  # Delete in reverse order to avoid index issues
+            mesh.DeleteCell(to_delete[i])  # Delete cells one by one
+
+        mesh.RemoveDeletedCells()
+    return mesh
 
 def ComputeLaplacian(vertex, faces):
     """Calculates the Laplacian of a mesh
@@ -1414,20 +1746,23 @@ def ComputeLaplacian(vertex, faces):
 
 def flat(m, boundary_ids, x0, y0):
     """Conformal flattening fitting boundary to (x0,y0) coordinate positions"""
+    
+    # m = DeleteNonTriangularFaces(m) # Ensure only triangular faces are present
     vertex = ExtractVTKPoints(m).T
     faces = ExtractVTKTriFaces(m).T
     n = vertex.shape[1]
     L = ComputeLaplacian(vertex, faces)
 
     L = L.tolil()
-    L[boundary_ids, :] = 0
-    for i in range(boundary_ids.shape[0]):
-        L[boundary_ids[i], boundary_ids[i]] = 1
+    bond_ids = boundary_ids[np.where(boundary_ids < L.shape[0])]
+    L[bond_ids, :] = 0
+    for i in range(bond_ids.shape[0]):
+        L[bond_ids[i], bond_ids[i]] = 1
 
     Rx = np.zeros(n)
-    Rx[boundary_ids] = x0
+    Rx[bond_ids] = x0[np.where(boundary_ids < L.shape[0])]
     Ry = np.zeros(n)
-    Ry[boundary_ids] = y0
+    Ry[bond_ids] = y0[np.where(boundary_ids < L.shape[0])]
     L = L.tocsr()
 
     result = np.zeros((Rx.size, 2))
@@ -1451,33 +1786,34 @@ def flat_w_constraints(m, boundary_ids, constraints_ids, x0_b, y0_b, x0_c, y0_c)
     """ Conformal flattening fitting boundary points to (x0_b,y0_b) coordinate positions
     and additional contraint points to (x0_c,y0_c).
     Solve minimization problem using quadratic programming: https://en.wikipedia.org/wiki/Quadratic_programming"""
-
-    penalization = 1000000
+    penalization = 1000
     vertex = ExtractVTKPoints(m).T    # 3 x n_vertices
     faces = ExtractVTKTriFaces(m).T
     n = vertex.shape[1]
     L = ComputeLaplacian(vertex, faces)
     L = L.tolil()
-    L[boundary_ids, :] = 0.0     # Not conformal there
-    for i in range(boundary_ids.shape[0]):
-         L[boundary_ids[i], boundary_ids[i]] = 1
+    L[boundary_ids[np.where(boundary_ids<L.shape[0])], :] = 0.0     # Not conformal there
+    b_ids = boundary_ids[np.where(boundary_ids<L.shape[0])]
+    for i in range(b_ids.shape[0]):
+         L[b_ids[i], b_ids[i]] = 1
 
     L = L*penalization
 
     Rx = np.zeros(n)
     Ry = np.zeros(n)
-    Rx[boundary_ids] = x0_b * penalization
-    Ry[boundary_ids] = y0_b * penalization
+    Rx[b_ids] = x0_b[np.where(boundary_ids<L.shape[0])] * penalization
+    Ry[b_ids] = y0_b[np.where(boundary_ids<L.shape[0])] * penalization
 
     L = L.tocsr()
     # result = np.zeros((Rx.size, 2))
 
-    nconstraints = constraints_ids.shape[0]
+    const_ids = constraints_ids[np.where(constraints_ids<L.shape[0])]
+    nconstraints = const_ids.shape[0]
     M = np.zeros([nconstraints, n])   # M, zero rows except 1 in constraint point
     for i in range(nconstraints):
-        M[i, constraints_ids[i]] = 1
-    dx = x0_c
-    dy = y0_c
+        M[i, const_ids[i]] = 1
+    dx = x0_c[np.where(constraints_ids<L.shape[0])]
+    dy = y0_c[np.where(constraints_ids<L.shape[0])]
 
     block1 = hstack([L.T.dot(L), M.T])
 
